@@ -1,0 +1,17 @@
+
+* text=auto
+
+*.java text encoding=utf-8
+*.kt text encoding=utf-8
+*.md text encoding=utf-8
+*.txt text encoding=utf-8
+*.properties text encoding=utf-8
+*.xml text encoding=utf-8
+*.yml text encoding=utf-8
+*.yaml text encoding=utf-8
+*.json text encoding=utf-8
+
+*.jar binary
+*.class binary
+*.png binary
+*.jpg binary
