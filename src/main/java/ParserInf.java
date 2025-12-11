@@ -5,6 +5,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.List;
 import java.util.Scanner;
 
 import com.google.gson.JsonArray;
@@ -27,7 +28,7 @@ public class ParserInf {
         return scanner.nextLine() + name;
     }
 
-    public String contentInformation(String message, String[] poster) throws IOException, InterruptedException {
+    public String contentInformation(List<String> list) throws IOException, InterruptedException {
         String json = makeHttp();
         JsonObject root = JsonParser.parseString(json).getAsJsonObject();
 
@@ -46,6 +47,7 @@ public class ParserInf {
                 .append("\n🎞 Тип: ").append(type)
                 .append("\n🎨 Жанры: ").append(genre);
 
+
         if ("series".equals(type)) {
             String seasons = getSafeString(root, "totalSeasons", "?");
             text.append("\n📊 Сезонов: ").append("N/A".equals(seasons) ? "Нет данных" : seasons);
@@ -61,10 +63,18 @@ public class ParserInf {
 
         text.append("\n⭐ Рейтинг: ").append("N/A".equals(rating) ? "Нет рейтинга" : rating);
 
-
+        list.add(name);
         String tmpposter = getSafeString(root, "Poster", null);
         if (tmpposter != null && !"N/A".equals(tmpposter)) {
-            poster[0] = tmpposter;
+            list.add(tmpposter);
+        }
+        list.add(text.toString());
+
+        if (!"Не указано".equals(genre) && !"N/A".equals(genre)) {
+            String[] genreArray = genre.split(",\\s*");
+            for (int i = 0; i < Math.min(genreArray.length, 3); i++) {
+                list.add(genreArray[i]);
+            }
         }
 
         return text.toString();
