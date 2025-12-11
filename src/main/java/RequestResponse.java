@@ -1,6 +1,7 @@
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.sql.Struct;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -81,6 +82,8 @@ public class RequestResponse{
             case "already":
                 break;
             case "list":
+                String text = (new PrintFilmsList(db)).print(chatID);
+                messages.sendMessage(chatID, text, messages.getNavigationKeyboard());
                 break;
             case "new":
                 messages.sendMessage(chatID, "Введите название", messages.getNavigationKeyboard());
