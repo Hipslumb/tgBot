@@ -5,6 +5,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.List;
 import java.util.Scanner;
 
 import com.google.gson.JsonArray;
@@ -27,7 +28,7 @@ public class ParserInf {
         return scanner.nextLine() + name;
     }
 
-    public String contentInformation(String message, String[] poster) throws IOException, InterruptedException {
+    public String contentInformation(List<String> list) throws IOException, InterruptedException {
         String json = makeHttp();
         JsonObject root = JsonParser.parseString(json).getAsJsonObject();
 
@@ -38,6 +39,7 @@ public class ParserInf {
         StringBuilder text = new StringBuilder("Добавленный контент был найден:\n");
 
         String title = getSafeString(root, "Title", "Не указано");
+
         String type = getSafeString(root, "Type", "Не указано");
         String genre = getSafeString(root, "Genre", "Не указано");
         String rating = getSafeString(root, "imdbRating", "Нет рейтинга");
@@ -62,9 +64,19 @@ public class ParserInf {
         text.append("\n⭐ Рейтинг: ").append("N/A".equals(rating) ? "Нет рейтинга" : rating);
 
 
-        String tmpposter = getSafeString(root, "Poster", null);
-        if (tmpposter != null && !"N/A".equals(tmpposter)) {
-            poster[0] = tmpposter;
+        list.add(title);
+        list.add(type);
+        list.add(text.toString());
+        String poster = getSafeString(root, "Poster", null);
+        if (poster != null && !"N/A".equals(poster)) {
+            list.add(poster);
+        }
+
+        if (!"Не указано".equals(genre) && !"N/A".equals(genre)) {
+            String[] genreArray = genre.split(",\\s*");
+            for (int i = 0; i < Math.min(genreArray.length, 3); i++) {
+                list.add(genreArray[i]);
+            }
         }
 
         return text.toString();

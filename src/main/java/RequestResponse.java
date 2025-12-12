@@ -1,21 +1,23 @@
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.sql.Struct;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 public class RequestResponse{
     private Messages messages;
     private DataBase db;
     private Map<Long,String> map = new HashMap<>();
+    private List<String> list = new ArrayList<>();
+
     public RequestResponse(Messages messages, DataBase db) {
         this.messages = messages;
         this.db = db;
     }
 
-    public void getInterapt(Update update) throws TelegramApiException {
+    public void getInterapt(Update update) throws TelegramApiException, IOException, InterruptedException {
 
         String message = update.getMessage().getText();
         Long chatID = update.getMessage().getChatId();
@@ -24,9 +26,25 @@ public class RequestResponse{
             String stat = map.get(chatID);
             switch (stat){
                 case "wait_name":
-                    db.add(chatID,message);
+                    db.addTitleOnly(chatID,message);
                     map.remove(chatID);
-                    messages.sendMessage(chatID,"Добавлено: "+ message, messages.getNavigationKeyboard());
+
+                    String info = (new ParserInf(message)).contentInformation(list);
+
+                    if (list.isEmpty()) {
+                        messages.sendMessage(chatID,"\n📝 Контент добавлен с вашим названием.",
+                                messages.getNavigationKeyboard());
+                        list.clear();
+                        return;
+                    }
+
+                    String text = "\nВы можете также добавить информацию из интернета " +
+                            "для улучшения поиска или сохранить только своё название, " +
+                            "если найдено не то!";
+                    messages.sendMessage(chatID,info+text, messages.getInlineKeyboard(new String[][]{
+                            {"👴🏻 Добавить с этим описанием", "add_info"},
+                            {"👶🏻 Добавить моё название", "add_my"}
+                    }));
                     return;
                 case "wait_delete":
                     db.remove(chatID,message);
@@ -47,8 +65,8 @@ public class RequestResponse{
                 coosingEditeMyList(chatID);
                 break;
             case "🗂 Мой список":
-                //делай делай Ярик, я хочу отображение списком с кнопочками
-                seeing(chatID);
+                String text = (new PrintFilmsList(db)).print(chatID);
+                messages.sendMessage(chatID, text, messages.getNavigationKeyboard());
                 break;
             case "🦐 Несмешной анекдот":
                 messages.sendMessage(chatID, getRandomJoke(), messages.getNavigationKeyboard());
@@ -72,21 +90,47 @@ public class RequestResponse{
             case "series":
                 choosingGenner(chatID,messageId);
                 break;
+            case "add_info":
+               if (!list.isEmpty()){
+                   String title = list.get(0);
+                   String type = list.get(1);
+                   String info = list.get(2);
+
+                   List<String> infoArr = new ArrayList<>();
+                   String poster = "";
+                   if (list.size() > 3) {
+                       poster = list.get(3);
+                   }
+                   infoArr.add(poster);
+                   infoArr.add(info);
+                   infoArr.add(type);
+
+                   int genreStartIndex = poster.isEmpty() ? 3 : 4;
+
+                   for (int i = genreStartIndex; i < Math.min(genreStartIndex + 3, list.size()); i++) {
+                       infoArr.add(list.get(i));
+                   }
+                   while (infoArr.size() < 6) {
+                       infoArr.add("");
+                   }
+                   db.updateInfo(chatID, title, infoArr);
+                   messages.sendMessage(chatID, "Успешно добавлено", messages.getNavigationKeyboard());
+                   list.clear();
+               }
+                break;
+            case "add_my":
+                messages.sendMessage(chatID, "Успешно добавлено", messages.getNavigationKeyboard());
+                list.clear();
+                break;
             case "search":
-                messages.sendMessage(chatID, "Введите название", messages.getNavigationKeyboard());
+                messages.sendMessage(chatID, "Введите название:", messages.getNavigationKeyboard());
                 break;
             case "wish":
                 break;
-            case "watched":
-                break;
-            case "already":
-                break;
-            case "list":
-                String text = (new PrintFilmsList(db)).print(chatID);
-                messages.sendMessage(chatID, text, messages.getNavigationKeyboard());
-                break;
             case "new":
-                messages.sendMessage(chatID, "Введите название", messages.getNavigationKeyboard());
+                messages.sendMessage(chatID, "Введите название:\n" +
+                        "Если вводить на английском возможно можно будет добавить информацию" +
+                        " из интернета 😉", messages.getNavigationKeyboard());
                 map.put(chatID,"wait_name");
                 break;
             case "delete":
@@ -99,9 +143,7 @@ public class RequestResponse{
             case "back_to_choose":
                 editechoosingContent(chatID,messageId);
                 break;
-            case "back_to_all":
-                editeSeeing(chatID,messageId);
-                break;
+
         }
     }
 
@@ -136,23 +178,6 @@ public class RequestResponse{
         messages.sendMessage(chatID, text, messages.getInlineKeyboard(new String[][]{
                 {"🎲 Рандомайзер", "random"},
                 {"🔎 Поиск", "search"},
-        }));
-    }
-
-    private void seeing(Long chatID) throws TelegramApiException {
-        String text = "Вы можете выбрать список к просмотру";
-        messages.sendMessage(chatID,text, messages.getInlineKeyboard(new String[][]{
-                {"🍿 Хочу посмотреть", "wish", "👁 Просмотренное", "watched"},
-                {"📜 Весь список", "list"}
-        }));
-    }
-
-    //нужна чтоб возвращаться
-    private void editeSeeing(Long chatID, Integer messageID) throws TelegramApiException {
-        String text = "Вы можете выбрать список к просмотру";
-        messages.editMessageKeyboard(chatID,messageID,text, messages.getInlineKeyboard(new String[][]{
-                {"🍿 Хочу посмотреть", "wish", "👁 Просмотренное", "watched"},
-                {"📜 Весь список", "list"}
         }));
     }
 
