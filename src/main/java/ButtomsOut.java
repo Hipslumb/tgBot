@@ -11,10 +11,12 @@ public class ButtomsOut{
     public void choosingGenner(Long chatID, Integer messageId) throws TelegramApiException {
         String text = "Выбери жанр, если он имеет значение";
         messages.editMessageKeyboard(chatID, messageId, text, messages.getInlineKeyboard(new String[][]{
-                {"🎪 Комедия", "comedy", "🎭 Драма", "drama"},
-                {"👻 Ужасы", "horror", "😲 Триллер", "triller"},
-                {"👽 Фантастика", "fiction", "🎲 Любой", "all"},
-                {"👈🏻 Назад", "back_to_ForS"}
+                {"🎪 Комедия", "Comedy", "🎭 Драма", "Drama"},
+                {"👻 Ужасы", "Horror", "😲 Триллер", "Thriller"},
+                {"👽 Фантастика", "Sci-Fi", "=🐱‍👤 Криминал", "Crime"},
+                {"🕸 Детектив", "Mystery", "🌍 Приключения", "Adventure"},
+                {"️🎠 Мультик", "Animation", "💕 Романтика", "Romance"},
+                {"🎲 Любой", "all", "👈🏻 Назад", "back_to_ForS"}
         }));
     }
 
