@@ -11,10 +11,10 @@ public class PrintFilmsList {
 
     public String print (Long chatId) throws TelegramApiException {
 
-        List<String> filmList = db.get(chatId);
+        List<String> filmList = db.getTitles(chatId);
         String text = "";
         if (filmList == null || filmList.isEmpty()) {
-            text =  "У вас нет сохраненных фильмов";
+            text =  "Ваш список пока что пуст 😕";
             return text;
         }
         String message = "";

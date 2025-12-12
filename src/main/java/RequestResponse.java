@@ -11,7 +11,6 @@ public class RequestResponse{
     private DataBase db;
     private Map<Long,String> map = new HashMap<>();
     private List<String> list = new ArrayList<>();
-    private Map<String,List<String>> information = new HashMap<>();//0 - это всегда инфа остальное жанр
 
     public RequestResponse(Messages messages, DataBase db) {
         this.messages = messages;
@@ -27,13 +26,21 @@ public class RequestResponse{
             String stat = map.get(chatID);
             switch (stat){
                 case "wait_name":
-                    db.add(chatID,message);
+                    db.addTitleOnly(chatID,message);
                     map.remove(chatID);
 
                     String info = (new ParserInf(message)).contentInformation(list);
-                    String text = "\nВы можете также добавить информацию из интернета" +
+
+                    if (list.isEmpty()) {
+                        messages.sendMessage(chatID,"\n📝 Контент добавлен с вашим названием.",
+                                messages.getNavigationKeyboard());
+                        list.clear();
+                        return;
+                    }
+
+                    String text = "\nВы можете также добавить информацию из интернета " +
                             "для улучшения поиска или сохранить только своё название, " +
-                            "если найдено не то";
+                            "если найдено не то!";
                     messages.sendMessage(chatID,info+text, messages.getInlineKeyboard(new String[][]{
                             {"👴🏻 Добавить с этим описанием", "add_info"},
                             {"👶🏻 Добавить моё название", "add_my"}
@@ -84,23 +91,45 @@ public class RequestResponse{
                 choosingGenner(chatID,messageId);
                 break;
             case "add_info":
-                information.put(list.get(0),list);
-                messages.sendMessage(chatID, "Успешно добавлено", messages.getNavigationKeyboard());
-                //куда-то сохранить инфу и жанр
+               if (!list.isEmpty()){
+                   String title = list.get(0);
+                   String type = list.get(1);
+                   String info = list.get(2);
+
+                   List<String> infoArr = new ArrayList<>();
+                   String poster = "";
+                   if (list.size() > 3) {
+                       poster = list.get(3);
+                   }
+                   infoArr.add(poster);
+                   infoArr.add(info);
+                   infoArr.add(type);
+
+                   int genreStartIndex = poster.isEmpty() ? 3 : 4;
+
+                   for (int i = genreStartIndex; i < Math.min(genreStartIndex + 3, list.size()); i++) {
+                       infoArr.add(list.get(i));
+                   }
+                   while (infoArr.size() < 6) {
+                       infoArr.add("");
+                   }
+                   db.updateInfo(chatID, title, infoArr);
+                   messages.sendMessage(chatID, "Успешно добавлено", messages.getNavigationKeyboard());
+                   list.clear();
+               }
                 break;
             case "add_my":
-                information.remove(list.get(0),list);
-                list.clear();
                 messages.sendMessage(chatID, "Успешно добавлено", messages.getNavigationKeyboard());
+                list.clear();
                 break;
             case "search":
-                messages.sendMessage(chatID, "Введите название", messages.getNavigationKeyboard());
+                messages.sendMessage(chatID, "Введите название:", messages.getNavigationKeyboard());
                 break;
             case "wish":
                 break;
             case "new":
-                messages.sendMessage(chatID, "Введите название\n" +
-                        "Если вводить на английском можно будет добавить информацию" +
+                messages.sendMessage(chatID, "Введите название:\n" +
+                        "Если вводить на английском возможно можно будет добавить информацию" +
                         " из интернета 😉", messages.getNavigationKeyboard());
                 map.put(chatID,"wait_name");
                 break;

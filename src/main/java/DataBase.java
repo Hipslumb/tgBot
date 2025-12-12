@@ -5,7 +5,7 @@
 
     public class DataBase {
 
-        private Map<Long, List<String>> data = new HashMap<>();
+        private Map<Long, Map <String, List<String>>> data = new HashMap<>();
         private String filename = "D:/database.txt";
 
         public DataBase() {
@@ -13,70 +13,82 @@
         }
 
         private void loadFromFile() {
-            try {
-                File file = new File(filename);
-                if (!file.exists()) return;
-
-                BufferedReader reader = new BufferedReader(new FileReader(file));
+            File file = new File(filename);
+            if (!file.exists()) {
+                data = new HashMap<>();
+                return;
+            }
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))){
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    String[] parts = line.split("=", 2);
-                    if (parts.length == 2) {
+                    String[] parts = line.split(":", 3);
+                    if (parts.length == 3) {
                         try {
                             Long key = Long.parseLong(parts[0].trim());
-                            String[] movies = parts[1].split(",");
-                            List<String> list = new ArrayList<>(Arrays.asList(movies));
-                            data.put(key, list);
+                            String movie = parts[1].trim();
+
+                            String[] infoArray = parts[2].split(",");
+                            List<String> info = new ArrayList<>(Arrays.asList(infoArray));
+
+                            Map<String, List<String>> list = data.computeIfAbsent(
+                                    key, k -> new HashMap<>()
+                            );
+                            list.put(movie, info);
                         } catch (NumberFormatException e) {
                             System.out.println("Пропущена строка с некорректным ключом: " + parts[0]);
                         }
                     }
                 }
-                reader.close();
             } catch (IOException e) {
                 System.out.println("Ошибка загрузки: " + e.getMessage());
+                data = new HashMap<>();
             }
         }
 
         // Сохранение базы данных в "D:/database.txt"
         private void saveToFile() {
-            try {
-                PrintWriter writer = new PrintWriter(filename);
-                for (Map.Entry<Long, List<String>> entry : data.entrySet()) {
-                    String movies = String.join(",", entry.getValue());
-                    writer.println(entry.getKey() + "=" + movies);
+            try (PrintWriter writer = new PrintWriter(filename)){
+                for (Map.Entry<Long, Map<String, List<String>>> userEntry : data.entrySet()) {
+                    Long chatId = userEntry.getKey();
+                    Map<String, List<String>> userData = userEntry.getValue();
+
+                    for (Map.Entry<String, List<String>> filmEntry : userData.entrySet()) {
+                        String filmTitle = filmEntry.getKey();
+                        List<String> info = filmEntry.getValue();
+
+                        String infoString = String.join(",", info);
+                        writer.println(chatId + ":" + filmTitle + ":" + infoString);
+                    }
                 }
-                writer.close();
             } catch (IOException e) {
                 System.out.println("Ошибка сохранения: " + e.getMessage());
             }
         }
 
-        // Добавить фильм (ЧАТ ID, Название фильма)
-        public void add(Long key, String movie) {
+        // Добавить фильм (ЧАТ ID, Название фильма, [постер, описание, тип, жанры])
+        public void add(Long chatId, String movie, List<String> info) {
 
-            List<String> list = data.computeIfAbsent(key, k -> new ArrayList<>());
-
-            if (!list.contains(movie)) {
-                list.add(movie);
-                saveToFile();
-                System.out.println("+file");
-            }
-
+            Map<String, List<String>> userData = data.computeIfAbsent(chatId, k -> new HashMap<>());
+            userData.put(movie, new ArrayList<>(info));
+            saveToFile();
         }
 
         // Получить конкретный фильм (ЧАТ ID, Название фильма)
-        public String get(Long key, int index) {
-            List<String> list = data.get(key);
-            if (list != null && index >= 0 && index < list.size()) {
-                return list.get(index);
+        public List<String> getInfo(Long key, String movie) {
+            Map<String, List<String>> userData = data.get(key);
+            if (userData == null || !userData.containsKey(movie)) {
+                return null; // или вернуть пустой список
             }
-            return null;
+            return new ArrayList<>(userData.get(movie));
         }
 
         // Получить список фильмов (ЧАТ ID)
-        public List<String> get(Long key) {
-            return data.getOrDefault(key, new ArrayList<>());
+        public List<String> getTitles(Long key) {
+            Map<String, List<String>> userData = data.get(key);
+            if (userData == null) {
+                return new ArrayList<>();
+            }
+            return new ArrayList<>(userData.keySet());
         }
 
         // Удаление пользователя (ЧАТ ID)
@@ -87,13 +99,34 @@
 
         // Удаление конкретного фильма (ЧАТ ID, Название фильма)
         public void remove(Long key, String movie) {
-            List<String> list = data.get(key);
-            if (list != null) {
-                list.remove(movie);
-                if (list.isEmpty()) {
+            Map<String, List<String>> userData = data.get(key);
+            if (userData != null) {
+                userData.remove(movie);
+                if (userData.isEmpty()) {
                     data.remove(key);
                 }
+                saveToFile();
             }
-            saveToFile();
+        }
+
+        //Добавить только название
+        public void addTitleOnly(Long chatId, String movie) {
+            Map<String, List<String>> userData = data.computeIfAbsent(chatId, k -> new HashMap<>());
+
+            if (!userData.containsKey(movie)) {
+                userData.put(movie, new ArrayList<>()); // Пустой список информации
+                saveToFile();
+                System.out.println("+file (title only)");
+            }
+        }
+
+        //Обновить информацию о фильме
+        public void updateInfo(Long chatId, String movie, List<String> info) {
+            Map<String, List<String>> userData = data.get(chatId);
+            if (userData != null && userData.containsKey(movie)) {
+                userData.put(movie, new ArrayList<>(info));
+                saveToFile();
+                System.out.println("+file (info updated)");
+            }
         }
     }
