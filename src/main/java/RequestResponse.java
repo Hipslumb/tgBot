@@ -69,7 +69,7 @@ public class RequestResponse{
             case "random":
                 buttomsOut.filmOrSeries(chatID,messageId);
                 break;
-            case "film":
+            case "movie":
                 buttomsOut.choosingGenner(chatID,messageId);
                 break;
             case "series":

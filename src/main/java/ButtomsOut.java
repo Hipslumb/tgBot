@@ -23,7 +23,7 @@ public class ButtomsOut{
     public void filmOrSeries(Long chatID, Integer messageId) throws TelegramApiException {
         String text = "Что именно ты ищешь?";
         messages.editMessageKeyboard(chatID, messageId, text, messages.getInlineKeyboard(new String[][]{
-                {"📽 Фильм", "film", "📺 Сериал", "series"},
+                {"📽 Фильм", "movie", "📺 Сериал", "series"},
                 {"👈🏻 Назад", "back_to_choose"}
         }));
     }
