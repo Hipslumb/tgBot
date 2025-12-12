@@ -1,4 +1,3 @@
-    import org.telegram.telegrambots.meta.api.objects.Update;
 
     import java.io.*;
     import java.util.*;
@@ -18,50 +17,77 @@
                 data = new HashMap<>();
                 return;
             }
-            try (BufferedReader reader = new BufferedReader(new FileReader(file))){
+
+            data.clear();
+
+            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    String[] parts = line.split(":", 3);
-                    if (parts.length == 3) {
-                        try {
-                            Long key = Long.parseLong(parts[0].trim());
-                            String movie = parts[1].trim();
+                    if (line.trim().isEmpty()) continue;
 
-                            String[] infoArray = parts[2].split(",");
-                            List<String> info = new ArrayList<>(Arrays.asList(infoArray));
+                    int eqIndex = line.indexOf("=[");
+                    int lastBracket = line.lastIndexOf("]");
 
-                            Map<String, List<String>> list = data.computeIfAbsent(
-                                    key, k -> new HashMap<>()
-                            );
-                            list.put(movie, info);
-                        } catch (NumberFormatException e) {
-                            System.out.println("Пропущена строка с некорректным ключом: " + parts[0]);
+                    if (eqIndex == -1 || lastBracket == -1) continue;
+
+                    try {
+                        Long chatId = Long.parseLong(line.substring(0, eqIndex).trim());
+                        String content = line.substring(eqIndex + 2, lastBracket);
+
+                        String[] parts = content.split("###", 2);
+                        if (parts.length < 2) continue;
+
+                        String movie = parts[0];
+                        String allInfo = parts[1];
+
+                        List<String> info = new ArrayList<>();
+                        String[] infoParts = allInfo.split("###");
+                        for (String part : infoParts) {
+                            // ФИКС: возвращаем переносы строк обратно
+                            info.add(restoreNewlines(part));
                         }
+
+                        Map<String, List<String>> userData = data.computeIfAbsent(
+                                chatId, k -> new HashMap<>()
+                        );
+                        userData.put(movie, info);
+
+                    } catch (Exception e) {
+                        System.out.println("Ошибка в строке: " + line);
                     }
                 }
             } catch (IOException e) {
                 System.out.println("Ошибка загрузки: " + e.getMessage());
-                data = new HashMap<>();
             }
         }
 
+
         // Сохранение базы данных в "D:/database.txt"
         private void saveToFile() {
-            try (PrintWriter writer = new PrintWriter(filename)){
+            try (PrintWriter writer = new PrintWriter(filename)) {
                 for (Map.Entry<Long, Map<String, List<String>>> userEntry : data.entrySet()) {
                     Long chatId = userEntry.getKey();
                     Map<String, List<String>> userData = userEntry.getValue();
 
                     for (Map.Entry<String, List<String>> filmEntry : userData.entrySet()) {
-                        String filmTitle = filmEntry.getKey();
+                        String movie = filmEntry.getKey();
                         List<String> info = filmEntry.getValue();
 
-                        if (info != null && info.size() == 1 && "NO_INFO".equals(info.get(0))) {
-                            continue;
-                        }
+                        StringBuilder sb = new StringBuilder();
+                        sb.append(chatId).append("=[");
+                        sb.append(movie).append("###");
 
-                        String infoString = String.join(",", info);
-                        writer.println(chatId + ":" + filmTitle + ":" + infoString);
+                        for (int i = 0; i < info.size(); i++) {
+                            // ФИКС: экранируем переносы строк
+                            String escapedItem = escapeNewlines(info.get(i));
+                            sb.append(escapedItem);
+                            if (i < info.size() - 1) {
+                                sb.append("###");
+                            }
+                        }
+                        sb.append("]");
+
+                        writer.println(sb.toString());
                     }
                 }
             } catch (IOException e) {
@@ -81,9 +107,13 @@
         public List<String> getInfo(Long key, String movie) {
             Map<String, List<String>> userData = data.get(key);
             if (userData == null || !userData.containsKey(movie)) {
-                return null; // или вернуть пустой список
+                return null;
             }
-            return new ArrayList<>(userData.get(movie));
+            List<String> info = userData.get(movie);
+            if (info == null || info.isEmpty()) {
+                return null;
+            }
+            return new ArrayList<>(info);
         }
 
         // Получить список фильмов (ЧАТ ID)
@@ -118,7 +148,7 @@
             Map<String, List<String>> userData = data.computeIfAbsent(chatId, k -> new HashMap<>());
 
             if (!userData.containsKey(movie)) {
-                userData.put(movie, Arrays.asList("NO_INFO")); // Пустой список информации
+                userData.put(movie, new ArrayList<>());
                 saveToFile();
                 System.out.println("+file (title only)");
             }
@@ -132,5 +162,20 @@
                 saveToFile();
                 System.out.println("+file (info updated)");
             }
+            else {
+                add(chatId, movie, info);
+            }
+        }
+
+        // Заменяем \n на метку перед сохранением
+        private String escapeNewlines(String text) {
+            if (text == null) return "";
+            return text.replace("\n", "%%NL%%");
+        }
+
+        // Возвращаем \n обратно при загрузке
+        private String restoreNewlines(String text) {
+            if (text == null) return "";
+            return text.replace("%%NL%%", "\n");
         }
     }

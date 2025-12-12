@@ -8,7 +8,6 @@ import java.net.http.HttpResponse;
 import java.util.List;
 import java.util.Scanner;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -36,7 +35,7 @@ public class ParserInf {
             return root.has("Error") ? root.get("Error").getAsString() : "Неизвестная ошибка API";
         }
 
-        StringBuilder text = new StringBuilder("Добавленный контент был найден:\n");
+        StringBuilder text = new StringBuilder();
 
         String title = getSafeString(root, "Title", "Не указано");
 

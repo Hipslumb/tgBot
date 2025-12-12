@@ -3,15 +3,13 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.sql.Struct;
 import java.util.*;
 
 public class RequestResponse{
-    private Messages messages;
-    private DataBase db;
+    protected Messages messages;
+    protected DataBase db;
     private Map<Long,String> map = new HashMap<>();
-    private List<String> list = new ArrayList<>();
-
+    private Map<Long, List<String>> userLists = new HashMap<>();
     public RequestResponse(Messages messages, DataBase db) {
         this.messages = messages;
         this.db = db;
@@ -26,25 +24,7 @@ public class RequestResponse{
             String stat = map.get(chatID);
             switch (stat){
                 case "wait_name":
-                    db.addTitleOnly(chatID,message);
-                    map.remove(chatID);
-
-                    String info = (new ParserInf(message)).contentInformation(list);
-
-                    if (list.isEmpty()) {
-                        messages.sendMessage(chatID,"\n📝 Контент добавлен с вашим названием.",
-                                messages.getNavigationKeyboard());
-                        list.clear();
-                        return;
-                    }
-
-                    String text = "\nВы можете также добавить информацию из интернета " +
-                            "для улучшения поиска или сохранить только своё название, " +
-                            "если найдено не то!";
-                    messages.sendMessage(chatID,info+text, messages.getInlineKeyboard(new String[][]{
-                            {"👴🏻 Добавить с этим описанием", "add_info"},
-                            {"👶🏻 Добавить моё название", "add_my"}
-                    }));
+                    caseWaitName(chatID,message);
                     return;
                 case "wait_delete":
                     db.remove(chatID,message);
@@ -52,30 +32,31 @@ public class RequestResponse{
                     messages.sendMessage(chatID,"Удалено: "+ message, messages.getNavigationKeyboard());
                     return;
                 case "wait_search":
-                    
-                    break;
+                    caseWaitSearch(chatID,message);
+                    return;
             }
         }
-
+        ButtomsOut buttomsOut = new ButtomsOut(messages);
         switch (message){
+
             case "/start":
                 messages.sendHiMessage(chatID,userName);
                 break;
             case "🎞 Выбрать контент":
-                choosingContent(chatID);
+                buttomsOut.choosingContent(chatID);
                 break;
             case "📝 Внести изменения":
-                coosingEditeMyList(chatID);
+                buttomsOut.coosingEditeMyList(chatID);
                 break;
             case "🗂 Мой список":
                 String text = (new PrintFilmsList(db)).print(chatID);
                 messages.sendMessage(chatID, text, messages.getNavigationKeyboard());
                 break;
-            case "🦐 Несмешной анекдот":
-                messages.sendMessage(chatID, getRandomJoke(), messages.getNavigationKeyboard());
+            case "😝 Несмешной анекдот":
+                messages.sendMessage(chatID, buttomsOut.getRandomJoke(), messages.getNavigationKeyboard());
                 break;
             default:
-                messages.sendMessage(chatID, "😞Нет такой команды (мб пока что)", messages.getNavigationKeyboard());
+                messages.sendMessage(chatID, "😞Нет такой команды", messages.getNavigationKeyboard());
         }
     }
 
@@ -83,47 +64,25 @@ public class RequestResponse{
         Long chatID = update.getCallbackQuery().getMessage().getChatId();
         Integer messageId = update.getCallbackQuery().getMessage().getMessageId();
 
+        ButtomsOut buttomsOut = new ButtomsOut(messages);
         switch (callBackData){
             case "random":
-                filmOrSeries(chatID,messageId);
+                buttomsOut.filmOrSeries(chatID,messageId);
                 break;
             case "film":
-                choosingGenner(chatID,messageId);
+                buttomsOut.choosingGenner(chatID,messageId);
                 break;
             case "series":
-                choosingGenner(chatID,messageId);
+                buttomsOut.choosingGenner(chatID,messageId);
                 break;
             case "add_info":
-               if (!list.isEmpty()){
-                   String title = list.get(0);
-                   String type = list.get(1);
-                   String info = list.get(2);
-
-                   List<String> infoArr = new ArrayList<>();
-                   String poster = "";
-                   if (list.size() > 3) {
-                       poster = list.get(3);
-                   }
-                   infoArr.add(poster);
-                   infoArr.add(info);
-                   infoArr.add(type);
-
-                   int genreStartIndex = poster.isEmpty() ? 3 : 4;
-
-                   for (int i = genreStartIndex; i < Math.min(genreStartIndex + 3, list.size()); i++) {
-                       infoArr.add(list.get(i));
-                   }
-                   while (infoArr.size() < 6) {
-                       infoArr.add("");
-                   }
-                   db.updateInfo(chatID, title, infoArr);
-                   messages.sendMessage(chatID, "Успешно добавлено", messages.getNavigationKeyboard());
-                   list.clear();
-               }
+                caseAddInfo(chatID);
                 break;
             case "add_my":
+                if (userLists.containsKey(chatID)) {
+                    userLists.remove(chatID);
+                }
                 messages.sendMessage(chatID, "Успешно добавлено", messages.getNavigationKeyboard());
-                list.clear();
                 break;
             case "search":
                 messages.sendMessage(chatID, "Введите название:", messages.getNavigationKeyboard());
@@ -142,101 +101,100 @@ public class RequestResponse{
                 map.put(chatID,"wait_delete");
                 break;
             case "back_to_ForS":
-                filmOrSeries(chatID,messageId);
+                buttomsOut.filmOrSeries(chatID,messageId);
                 break;
             case "back_to_choose":
-                editechoosingContent(chatID,messageId);
+                buttomsOut.editechoosingContent(chatID,messageId);
                 break;
 
         }
     }
 
-    public void choosingGenner(Long chatID, Integer messageId) throws TelegramApiException {
-        String text = "Выбери жанр, если он имеет значение";
-        messages.editMessageKeyboard(chatID, messageId, text, messages.getInlineKeyboard(new String[][]{
-                {"🎪 Комедия", "comedy", "🎭 Драма", "drama"},
-                {"👻 Ужасы", "horror", "😲 Триллер", "triller"},
-                {"👽 Фантастика", "fiction", "🎲 Любой", "all"},
-                {"👈🏻 Назад", "back_to_ForS"}
+    private void caseWaitName(Long chatID,String message) throws IOException, TelegramApiException, InterruptedException {
+        db.addTitleOnly(chatID,message);
+        map.remove(chatID);
+        List<String> list = new ArrayList<>();
+
+        String info = (new ParserInf(message)).contentInformation(list);
+
+        if (list.isEmpty()) {
+            messages.sendMessage(chatID,"\n📝 Контент добавлен с вашим названием.",
+                    messages.getNavigationKeyboard());
+            return;
+        }
+        userLists.put(chatID, list);
+        String text = "\nВы можете также добавить информацию из интернета " +
+                "для улучшения поиска или сохранить только своё название, " +
+                "если найдено не то!";
+        messages.sendMessage(chatID,info+text, messages.getInlineKeyboard(new String[][]{
+                {"👴🏻 Добавить с этим описанием", "add_info"},
+                {"👶🏻 Добавить моё название", "add_my"}
         }));
     }
+    private void caseWaitSearch(Long chatID,String message) throws TelegramApiException {
+        List<String> userFilms = db.getTitles(chatID);
+        String foundFilm = null;
+        for (String film : userFilms) {
+            if (film.equalsIgnoreCase(message)) { // Точное совпадение
+                foundFilm = film;
+                break;
+            }
+        }
+        if (foundFilm == null) {
+            messages.sendMessage(chatID, "❌ Фильм не найден", messages.getInlineKeyboard(new String[][]{
+                    {"➕ Добавить контент", "new"}
+            }));
+        } else {
+            List<String> infoArr = db.getInfo(chatID, foundFilm);
 
-    public void filmOrSeries(Long chatID, Integer messageId) throws TelegramApiException {
-        String text = "Что именно ты ищешь?";
-        messages.editMessageKeyboard(chatID, messageId, text, messages.getInlineKeyboard(new String[][]{
-                {"📽 Фильм", "film", "📺 Сериал", "series"},
-                {"👈🏻 Назад", "back_to_choose"}
-        }));
+            if (infoArr != null && infoArr.size() > 1) {
+                String description = infoArr.get(1);
+                description = description.replace("###NEWLINE###", "\n");
+
+                String posterUrl = infoArr.get(0);
+                boolean hasPoster = posterUrl != null && !posterUrl.isEmpty() &&
+                        !posterUrl.equals("N/A") && posterUrl.startsWith("http");
+                if (hasPoster) {
+                    messages.sendPhoto(chatID, posterUrl, description);
+                } else {
+                    messages.sendMessage(chatID, description, messages.getNavigationKeyboard());
+                }
+            } else {
+                messages.sendMessage(chatID,
+                        "📌 Название:" + foundFilm + "\n",
+                        messages.getNavigationKeyboard());
+            }
+        }
+        map.remove(chatID);
     }
+    private void caseAddInfo(Long chatID) throws TelegramApiException {
+        List<String> list = userLists.get(chatID);
 
-    //нужна чтоб возвращаться
-    private void editechoosingContent(Long chatID, Integer messageID) throws TelegramApiException {
-        String text = "Вы можете выбрать рандомно по жанру или использовать поиск по своему списку";
-        messages.editMessageKeyboard(chatID,messageID,text, messages.getInlineKeyboard(new String[][]{
-                {"🎲 Рандомайзер", "random"},
-                {"🔎 Поиск", "search"},
-        }));
-    }
-    private void choosingContent(Long chatID) throws TelegramApiException {
-        String text = "Вы можете выбрать рандомно по жанру или использовать поиск по своему списку";
-        messages.sendMessage(chatID, text, messages.getInlineKeyboard(new String[][]{
-                {"🎲 Рандомайзер", "random"},
-                {"🔎 Поиск", "search"},
-        }));
-    }
+        if (list != null && !list.isEmpty()){
+            String title = list.get(0);
+            String type = list.get(1);
+            String info = list.get(2);
 
-    private void coosingEditeMyList(Long chatID) throws TelegramApiException {
-        String text = "Что вы хотите отредактировать в вашем списке?";
-        messages.sendMessage(chatID, text, messages.getInlineKeyboard(new String[][]{
-                {"➕ Добавить контент", "new", "👁 Отметить просмотренное", "already"},
-                {"🗑 Удалить", "delete"}
-        }));
-    }
-    private void editeMyList(Long chatID, Integer messageID) throws TelegramApiException {
-        String text = "Что вы хотите отредактировать в вашем списке?";
-        messages.editMessageKeyboard(chatID, messageID, text, messages.getInlineKeyboard(new String[][]{
-                {"➕ Добавить контент", "new", "👁 Отметить просмотренное", "already"},
-                {"🗑 Удалить", "delete"}
-        }));
-    }
+            List<String> infoArr = new ArrayList<>();
+            String poster = "";
+            if (list.size() > 3) {
+                poster = list.get(3);
+            }
+            infoArr.add(poster);
+            infoArr.add(info);
+            infoArr.add(type);
 
+            int genreStartIndex = poster.isEmpty() ? 3 : 4;
 
+            for (int i = genreStartIndex; i < Math.min(genreStartIndex + 3, list.size()); i++) {
+                infoArr.add(list.get(i));
+            }
 
-    //это оч тупо но я хочу доп кнопку сорри надо будет вынести в отдельный класс или придумать что-то норм
-    private String[] jokes = {
-            "Почему программисты путают Хэллоуин и Рождество?\nПотому что OCT 31 = DEC 25",
+            db.remove(chatID, title);
+            db.updateInfo(chatID, title, infoArr);
 
-            "Приходит как-то программист в бар. Садится за столик и говорит:\n" +
-                    "- Бармен! Мне чаю.\n" +
-                    "- Чёрного или зелёного?\n" +
-                    "- Любого, всё равно Exception...",
-
-            "Почему Java-разработчики носят очки?\n" +
-                    "Потому что они не C#!",
-
-            "Программист звонит в библиотеку:\n" +
-                    "- Здравствуйте, Катю можно?\n" +
-                    "- Она в архиве.\n" +
-                    "- Разархивируйте её пожалуйста!",
-
-            "Сколько программистов нужно, чтобы вкрутить лампочку?\n" +
-                    "- Ни одного. Это hardware проблема!",
-
-            "Чат GPT заходит в бар и говорит:\n" +
-                    "- Мне самого лучшего пива!\n" +
-                    "Бармен:\n" +
-                    "- Извините, как разработчик ИИ я не могу рекомендовать алкоголь",
-
-            "Почему телеграм-бот пошёл в лес?\n" +
-                    "Чтобы найти новые update!",
-
-            "Бот спрашивает у пользователя:\n" +
-                    "- Как тебя зовут?\n" +
-                    "- 404\n" +
-                    "- Имя не найдено, попробуйте ещё раз"
-    };
-    private Random random = new Random();
-    private String getRandomJoke() {
-        return jokes[random.nextInt(jokes.length)];
+            messages.sendMessage(chatID, "Успешно добавлено", messages.getNavigationKeyboard());
+            userLists.remove(chatID);
+        }
     }
 }

@@ -36,13 +36,7 @@ public class TgBot extends TelegramLongPollingBot {
         if (update.hasMessage()){
             try {
                 request.getInterapt(update);
-            } catch (TelegramApiException e) {
-                throw new RuntimeException(e);
-            } catch (FileNotFoundException e) {
-                throw new RuntimeException(e);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            } catch (InterruptedException e) {
+            } catch (InterruptedException | TelegramApiException | IOException e) {
                 throw new RuntimeException(e);
             }
         }

@@ -1,7 +1,9 @@
 
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.send.SendPhoto;
 import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
+import org.telegram.telegrambots.meta.api.objects.InputFile;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboard;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
@@ -13,6 +15,7 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import java.util.ArrayList;
 import java.util.List;
 
+
 public class Messages{
     private TelegramLongPollingBot bot;
 
@@ -21,15 +24,15 @@ public class Messages{
     }
 
     public void sendHiMessage(Long chatID, String userName) throws TelegramApiException {
-        String text = "Привет, " + (userName != null ? userName : "друг") + "!\n\n" +
+        String text = "Привет, " + (userName != null ? userName : "my dear friend") + "!\n\n" +
                 "🎬 Я твой персональный Media Keeper 🎬\n\n" +
                 "Я знаю, что ты часто натыкаешься на фильмы и сериалы, которые хочешь глянуть, но " +
                 "когда находится свободная минутка, не знаешь, что посмотреть.\n\n" +
                 "Со мной ты можешь:\n" +
                 "📝 Вести свой список фильмов и сериалов\n" +
                 "🎞 Выбирать, что посмотреть\n" +
-                "⭐ Оценивать просмотренное\n\n"  +
-                "Начнём по твоей команде!";
+                "⭐ Добавлять инфомацию из интернета\n"  +
+                "\nНачнём по твоей команде!";
         sendMessage(chatID,text,getNavigationKeyboard());
     }
 
@@ -65,7 +68,7 @@ public class Messages{
 
         KeyboardRow row2 = new KeyboardRow();
         row2.add(new KeyboardButton("🗂 Мой список"));
-        row2.add(new KeyboardButton("🦐 Несмешной анекдот"));
+        row2.add(new KeyboardButton("😝 Несмешной анекдот"));
 
         list.add(row1); list.add(row2);
         keyboard.setKeyboard(list);
@@ -93,6 +96,14 @@ public class Messages{
         }
         keyboard.setKeyboard(list);
         return keyboard;
+    }
+
+    public void sendPhoto(Long chatId, String photoUrl, String caption) throws TelegramApiException {
+        SendPhoto sendPhoto = new SendPhoto();
+        sendPhoto.setChatId(chatId.toString());
+        sendPhoto.setPhoto(new InputFile(photoUrl));
+        sendPhoto.setCaption(caption);
+        bot.execute(sendPhoto);
     }
 
 }
