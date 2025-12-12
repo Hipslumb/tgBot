@@ -51,6 +51,9 @@ public class RequestResponse{
                     map.remove(chatID);
                     messages.sendMessage(chatID,"Удалено: "+ message, messages.getNavigationKeyboard());
                     return;
+                case "wait_search":
+                    
+                    break;
             }
         }
 
@@ -124,6 +127,7 @@ public class RequestResponse{
                 break;
             case "search":
                 messages.sendMessage(chatID, "Введите название:", messages.getNavigationKeyboard());
+                map.put(chatID,"wait_search");
                 break;
             case "wish":
                 break;

@@ -56,6 +56,10 @@
                         String filmTitle = filmEntry.getKey();
                         List<String> info = filmEntry.getValue();
 
+                        if (info != null && info.size() == 1 && "NO_INFO".equals(info.get(0))) {
+                            continue;
+                        }
+
                         String infoString = String.join(",", info);
                         writer.println(chatId + ":" + filmTitle + ":" + infoString);
                     }
@@ -114,7 +118,7 @@
             Map<String, List<String>> userData = data.computeIfAbsent(chatId, k -> new HashMap<>());
 
             if (!userData.containsKey(movie)) {
-                userData.put(movie, new ArrayList<>()); // Пустой список информации
+                userData.put(movie, Arrays.asList("NO_INFO")); // Пустой список информации
                 saveToFile();
                 System.out.println("+file (title only)");
             }
