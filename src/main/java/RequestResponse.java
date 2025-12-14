@@ -8,11 +8,14 @@ import java.util.*;
 public class RequestResponse{
     protected Messages messages;
     protected DataBase db;
+    private GennerPrint gennerPrint;
+    private String Type;
     private Map<Long,String> map = new HashMap<>();
     private Map<Long, List<String>> userLists = new HashMap<>();
     public RequestResponse(Messages messages, DataBase db) {
         this.messages = messages;
         this.db = db;
+        this.gennerPrint = new GennerPrint(db);
     }
 
     public void getInterapt(Update update) throws TelegramApiException, IOException, InterruptedException {
@@ -70,9 +73,11 @@ public class RequestResponse{
                 buttomsOut.filmOrSeries(chatID,messageId);
                 break;
             case "movie":
+                Type = "movie";
                 buttomsOut.choosingGenner(chatID,messageId);
                 break;
             case "series":
+                Type = "series";
                 buttomsOut.choosingGenner(chatID,messageId);
                 break;
             case "add_info":
@@ -106,7 +111,24 @@ public class RequestResponse{
             case "back_to_choose":
                 buttomsOut.editechoosingContent(chatID,messageId);
                 break;
-
+            case "Comedy":
+            case "Drama":
+            case "Horror":
+            case "Thriller":
+            case "Sci-Fi":
+            case "Crime":
+            case "Mystery":
+            case "Adventure":
+            case "Animation":
+            case "Romance":
+            case "all":
+                String result = gennerPrint.getContent(chatID, Type, callBackData);
+                if (result.startsWith("❌")) {
+                    messages.sendMessage(chatID,result,
+                            messages.getNavigationKeyboard());
+                }
+                else caseWaitSearch(chatID,result);
+                break;
         }
     }
 
@@ -140,12 +162,8 @@ public class RequestResponse{
                 break;
             }
         }
-        if (foundFilm == null) {
-            messages.sendMessage(chatID, "❌ Фильм не найден", messages.getInlineKeyboard(new String[][]{
-                    {"➕ Добавить контент", "new"}
-            }));
-        } else {
-            List<String> infoArr = db.getInfo(chatID, foundFilm);
+
+        List<String> infoArr = db.getInfo(chatID, foundFilm);
 
             if (infoArr != null && infoArr.size() > 1) {
                 String description = infoArr.get(1);
@@ -164,7 +182,6 @@ public class RequestResponse{
                         "📌 Название:" + foundFilm + "\n",
                         messages.getNavigationKeyboard());
             }
-        }
         map.remove(chatID);
     }
     private void caseAddInfo(Long chatID) throws TelegramApiException {

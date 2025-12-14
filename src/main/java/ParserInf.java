@@ -19,12 +19,19 @@ public class ParserInf {
     public ParserInf(String name) throws FileNotFoundException {
         this.name = name;
         this.URL = formURL();
+
     }
 
     private String formURL() throws FileNotFoundException {
         File file = new File("D:/parser.txt");
         Scanner scanner = new Scanner(file);
-        return scanner.nextLine() + name;
+        String apiUrl = scanner.nextLine();
+        scanner.close();
+
+        String encodedName = name
+                .replace(" ", "%20")      // Пробелы
+                .replace("+", "%2B");
+        return apiUrl + encodedName;
     }
 
     public String contentInformation(List<String> list) throws IOException, InterruptedException {

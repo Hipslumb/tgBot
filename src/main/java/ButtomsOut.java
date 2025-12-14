@@ -13,7 +13,7 @@ public class ButtomsOut{
         messages.editMessageKeyboard(chatID, messageId, text, messages.getInlineKeyboard(new String[][]{
                 {"🎪 Комедия", "Comedy", "🎭 Драма", "Drama"},
                 {"👻 Ужасы", "Horror", "😲 Триллер", "Thriller"},
-                {"👽 Фантастика", "Sci-Fi", "=🐱‍👤 Криминал", "Crime"},
+                {"👽 Фантастика", "Sci-Fi", "🔪 Криминал", "Crime"},
                 {"🕸 Детектив", "Mystery", "🌍 Приключения", "Adventure"},
                 {"️🎠 Мультик", "Animation", "💕 Романтика", "Romance"},
                 {"🎲 Любой", "all", "👈🏻 Назад", "back_to_ForS"}
