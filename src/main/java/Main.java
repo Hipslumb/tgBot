@@ -6,7 +6,7 @@ import java.io.FileNotFoundException;
 
 // Класс для запуска бота
 public class Main {
-    public static void main(String[] args) throws FileNotFoundException, TelegramApiException, InterruptedException, RuntimeException {
+    public static void main(String[] args) {
         try {
             TelegramBotsApi botsApi = new TelegramBotsApi(DefaultBotSession.class);
             DataBase db = new DataBase();
@@ -18,16 +18,16 @@ public class Main {
                 Thread.sleep(1000);
             }
         } catch (InterruptedException e){
-            System.out.println("Operation interruped" + e.getMessage());
+            System.out.println("Operation interruped " + e.getMessage());
         }
         catch (TelegramApiException e){
-            System.out.println("TelegramApi" + e.getMessage());
+            System.out.println("TelegramApi " + e.getMessage());
         }
         catch (FileNotFoundException e){
-            System.out.println("File error" + e.getMessage());
+            System.out.println("File error " + e.getMessage());
         }
         catch (RuntimeException e){
-            System.out.println(e.getMessage());
+            System.out.println("Runtime error " + e.getMessage());
         }
     }
 }
