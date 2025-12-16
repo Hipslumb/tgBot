@@ -70,7 +70,7 @@ public class ParserInf {
         text.append("\n⭐ Рейтинг: ").append("N/A".equals(rating) ? "Нет рейтинга" : rating);
 
 
-        list.add(title);
+        list.add(name);
         list.add(type);
         list.add(text.toString());
         String poster = getSafeString(root, "Poster", null);

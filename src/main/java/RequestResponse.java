@@ -45,6 +45,9 @@ public class RequestResponse{
             case "/start":
                 messages.sendHiMessage(chatID,userName);
                 break;
+            case "/delete":
+                db.delete(chatID);
+                break;
             case "🎞 Выбрать контент":
                 buttomsOut.choosingContent(chatID);
                 break;
